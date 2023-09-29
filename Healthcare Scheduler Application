@@ -1,0 +1,100 @@
+
+//Doctors detail page and appointment booking endpoints
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+@SpringBootApplication
+@RestController
+public class AppointmentSystemApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(AppointmentSystemApplication.class, args);
+    }
+
+    // Dummy data for doctors
+    private List<Doctor> doctors = new ArrayList<>();
+
+    @GetMapping("/doctors")
+    public List<Doctor> listDoctors() {
+        return doctors;
+    }
+
+    @GetMapping("/doctors/{doctorId}")
+    public Doctor getDoctor(@PathVariable int doctorId) {
+        Optional<Doctor> doctor = doctors.stream()
+                .filter(d -> d.getId() == doctorId)
+                .findFirst();
+        return doctor.orElse(null);
+    }
+
+    @PostMapping("/appointments")
+    public String bookAppointment(@RequestBody AppointmentRequest request) {
+        Optional<Doctor> doctor = doctors.stream()
+                .filter(d -> d.getId() == request.getDoctorId())
+                .findFirst();
+
+        if (doctor.isPresent()) {
+            Doctor selectedDoctor = doctor.get();
+            if (selectedDoctor.isAvailable(request.getDate())) {
+                if (selectedDoctor.getAppointments().size() < selectedDoctor.getMaxPatients()) {
+                    selectedDoctor.addAppointment(request.getDate());
+                    return "Appointment booked successfully";
+                } else {
+                    return "Doctor is fully booked for this day";
+                }
+            } else {
+                return "Doctor is not available on this day";
+            }
+        } else {
+            return "Doctor not found";
+        }
+    }
+
+    @PostMapping("/doctors")
+    public void addDoctor(@RequestBody Doctor doctor) {
+        doctors.add(doctor);
+    }
+}
+
+
+
+
+// Doctor and appointment request classes
+
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Doctor {
+    private int id;
+    private String name;
+    private int maxPatients;
+    private List<LocalDate> appointments = new ArrayList<>();
+    private List<DayOfWeek> availability = new ArrayList<>();
+
+    // Constructors, getters, and setters
+
+    public boolean isAvailable(LocalDate date) {
+        DayOfWeek dayOfWeek = date.getDayOfWeek();
+        return availability.contains(dayOfWeek);
+    }
+
+    public void addAppointment(LocalDate date) {
+        appointments.add(date);
+    }
+}
+
+public class AppointmentRequest {
+    private int doctorId;
+    private LocalDate date;
+
+    // Constructors, getters, and setters
+}
+
